@@ -17,6 +17,9 @@ return [
         \Hocuspocus\HocuspocusLaravel::EVENT_ON_CREATE_DOCUMENT,
     ],
 
+    'job_connection' => env('HOCUSPOCUS_LARAVEL_JOB_CONNECTION'),
+    'job_queue' => env('HOCUSPOCUS_LARAVEL_JOB_QUEUE'),
+
     /*
      *
      */

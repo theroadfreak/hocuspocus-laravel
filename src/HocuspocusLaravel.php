@@ -75,7 +75,9 @@ class HocuspocusLaravel
      */
     protected function handleOnConnect(array $payload, Collaborative $document, Authenticatable $user): JsonResponse
     {
-        dispatch(new Connect($user, $document));
+        dispatch(new Connect($user, $document))
+            ->onConnection(config("hocuspocus-laravel.job_connection"))
+            ->onQueue(config("hocuspocuslaravel.job_queue"));
 
         return response()->json(
             $user->toArray()
@@ -90,7 +92,9 @@ class HocuspocusLaravel
      */
     protected function handleOnDisconnect(array $payload, Collaborative $document, Authenticatable $user)
     {
-        dispatch(new Disconnect($user, $document));
+        dispatch(new Disconnect($user, $document))
+            ->onConnection(config("hocuspocus-laravel.job_connection"))
+            ->onQueue(config("hocuspocuslaravel.job_queue"));
 
         return response('handled');
     }
@@ -121,7 +125,9 @@ class HocuspocusLaravel
      */
     protected function handleOnChange(array $payload, Collaborative $document, Authenticatable $user)
     {
-        dispatch(new Change($user, $document, $payload['document']));
+        dispatch(new Change($user, $document, $payload['document']))
+            ->onConnection(config("hocuspocus-laravel.job_connection"))
+            ->onQueue(config("hocuspocuslaravel.job_queue"));
 
         return response('handled');
     }
