@@ -112,9 +112,14 @@ class HocuspocusLaravel
             return [$attribute => $document->{$attribute}];
         });
 
-        return response()->json(
-            $data->toJson()
-        );
+        // Decode the default attribute if it's a JSON string
+        $responseData = $data->toArray();
+        if (isset($responseData['default']) && is_string($responseData['default'])) {
+            $responseData['default'] = json_decode($responseData['default'], true);
+        }
+
+        // Return the data as a JSON response
+        return response()->json($responseData);
     }
 
     /**
