@@ -55,8 +55,17 @@ class HocuspocusLaravel
         $user = $this->getUser($json['payload']['requestParameters']);
         $document = $this->getDocument($json['payload']['documentName']);
 
-        if (!$user->can(config('hocuspocus-laravel.policy_method_name'), $document)) {
-            throw new AuthorizationException("User is not allowed to access this document");
+        // For change events, check edit permission
+        if ($json['event'] === self::EVENT_ON_CHANGE) {
+            if (!$user->can('update', $document)) {
+                throw new AuthorizationException("User is not allowed to edit this document");
+            }
+        }
+        // For all other events (connect, create, disconnect), check view permission
+        else {
+            if (!$user->can('view', $document)) {
+                throw new AuthorizationException("User is not allowed to view this document");
+            }
         }
 
         $handler = "handleOn{$json['event']}";
@@ -130,6 +139,13 @@ class HocuspocusLaravel
      */
     protected function handleOnChange(array $payload, Collaborative $document, Authenticatable $user)
     {
+        // If user is a viewer, reject the change
+        if ($user->role->isViewer()) {
+            return response()->json([
+                'error' => 'Viewers cannot modify documents'
+            ], 403);
+        }
+
         dispatch(new Change($user, $document, $payload['document']))
             ->onConnection(config("hocuspocus-laravel.job_connection"))
             ->onQueue(config("hocuspocuslaravel.job_queue"));

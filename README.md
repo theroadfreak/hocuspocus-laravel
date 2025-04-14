@@ -123,6 +123,67 @@ const server = Server.configure({
 server.listen()
 ```
 
+## Custom Role-Based Permissions
+
+This implementation includes custom role-based permission handling in the webhook processing:
+
+### User Role Logic
+
+The webhook handler implements different permission checks based on event type:
+
+```php
+// For change events, check edit permission
+if ($json['event'] === self::EVENT_ON_CHANGE) {
+    if (!$user->can('update', $document)) {
+        throw new AuthorizationException("User is not allowed to edit this document");
+    }
+}
+// For all other events (connect, create, disconnect), check view permission
+else {
+    if (!$user->can('view', $document)) {
+        throw new AuthorizationException("User is not allowed to view this document");
+    }
+}
+```
+
+### Custom handleOnChange Implementation
+
+The `handleOnChange` method includes specific role-based logic to prevent viewers from modifying documents:
+
+```php
+protected function handleOnChange(array $payload, Collaborative $document, Authenticatable $user)
+{
+    // If user is a viewer, reject the change
+    if ($user->role->isViewer()) {
+        return response()->json([
+            'error' => 'Viewers cannot modify documents'
+        ], 403);
+    }
+
+    dispatch(new Change($user, $document, $payload['document']))
+        ->onConnection(config("hocuspocus-laravel.job_connection"))
+        ->onQueue(config("hocuspocuslaravel.job_queue"));
+
+    return response('handled');
+}
+```
+
+This ensures that users with viewer roles can connect and view documents but cannot make changes to them.
+
+### Custom handleOnCreate Implementation
+
+The `handleOnCreate` method includes custom logic to handle JSON-encoded default values:
+
+```php
+// Decode the default attribute if it's a JSON string
+$responseData = $data->toArray();
+if (isset($responseData['default']) && is_string($responseData['default'])) {
+    $responseData['default'] = json_decode($responseData['default'], true);
+}
+```
+
+This automatically converts any JSON-encoded 'default' attribute to a PHP array before returning it to the client, which is useful when storing structured data in a single field.
+
 ## Credits
 - [Kris Siepert](https://github.com/kriskbx)
 - [All Contributors](../../contributors)
