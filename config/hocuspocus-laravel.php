@@ -30,9 +30,4 @@ return [
      */
     'access_token_parameter' => 'access_token',
 
-    /*
-     *
-     */
-    'policy_method_name' => 'update',
-
 ];
