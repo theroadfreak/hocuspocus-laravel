@@ -68,11 +68,15 @@ class TextDocumentPolicy
 }
 ```
 
-In the frontend, add the `collaborationAccessToken` and `collaborationDocumentName` to your WebSocket provider:
+In the frontend, add the document name to your WebSocket provider and authenticate using one of the available methods:
+
+### CSRF Token Authentication
+
+Use Laravel's built-in CSRF token for authentication:
 
 ```blade
 <script>
-  window.collaborationAccessToken = '{{ optional(auth()->user())->getCollaborationAccessToken() }}';
+  window.csrfToken = '{{ csrf_token() }}';
   window.collaborationDocumentName = '{{ $yourTextDocument->getCollaborationDocumentName() }}'
 </script>
 ```
@@ -86,7 +90,7 @@ const provider = new HocuspocusProvider({
   url: 'ws://localhost:1234',
   name: window.collaborationDocumentName,
   parameters: {
-    access_token: window.collaborationAccessToken,
+    csrf_token: window.csrfToken,
   },
 })
 ```

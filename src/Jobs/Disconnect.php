@@ -28,6 +28,9 @@ class Disconnect implements ShouldQueue
 
     public function handle()
     {
-        $this->user->collaborator->disconnectFrom($this->document);
+        \Hocuspocus\Models\Document::where('user_id', $this->user->id)
+            ->where('model_type', get_class($this->document))
+            ->where('model_id', $this->document->id)
+            ->update(['connected' => false]);
     }
 }

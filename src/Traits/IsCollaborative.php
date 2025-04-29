@@ -23,9 +23,9 @@ trait IsCollaborative
     {
         return $this->documents()
             ->where('connected', true)
-            ->with('collaborator.model')
+            ->with('user')
             ->get()
-            ->pluck('collaborator.model');
+            ->pluck('user');
     }
 
     public function getCollaborativeAttributes(): array

@@ -7,47 +7,30 @@ namespace Hocuspocus\Traits;
 use Exception;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use ReflectionClass;
-use Hocuspocus\Models\Collaborator;
+use Hocuspocus\Models\Document;
 
 trait CanCollaborate
 {
     public static function bootCanCollaborate()
     {
-        static::created(fn($user) => $user->createNewCollaborator());
-        static::deleted(fn($user) => $user->collaborator->delete());
+        static::deleted(fn($user) => $user->documents->each->delete());
 
         if (!(new ReflectionClass(static::class))->implementsInterface(Authorizable::class)) {
             throw new Exception("Model \"" . static::class . "\" doesn't implement \"" . Authorizable::class . "\"");
         }
     }
 
-    public function collaborator()
+    public function documents()
     {
-        return $this->morphOne(Collaborator::class, 'model');
+        return $this->hasMany(Document::class, 'user_id');
     }
 
     /**
-     * Get the access token for authenticating the user
-     * @return string
-     * @throws Exception
+     * Get the connected documents for this user
+     * @return \Illuminate\Support\Collection
      */
-    public function getCollaborationAccessToken(): string
+    public function getConnectedDocuments()
     {
-        if (!$this->collaborator) {
-            $this->createNewCollaborator();
-        }
-
-        return $this->collaborator->token;
-    }
-
-    /**
-     * Create a new collaborator
-     * @throws Exception
-     */
-    public function createNewCollaborator(): void
-    {
-        $this->setRelation('collaborator', $this->collaborator()->create([
-            'token' => Collaborator::generateToken(),
-        ]));
+        return $this->documents()->where('connected', true)->get();
     }
 }

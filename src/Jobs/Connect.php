@@ -28,6 +28,22 @@ class Connect implements ShouldQueue
 
     public function handle()
     {
-        $this->user->collaborator->connectTo($this->document);
+        // Get or create document connection
+        $document = \Hocuspocus\Models\Document::firstOrCreate([
+            'user_id' => $this->user->id,
+            'model_type' => get_class($this->document),
+            'model_id' => $this->document->id,
+        ], [
+            'connected' => true,
+            'connected_at' => now(),
+        ]);
+        
+        // If it exists but isn't connected, update it
+        if (!$document->connected) {
+            $document->update([
+                'connected' => true,
+                'connected_at' => now(),
+            ]);
+        }
     }
 }

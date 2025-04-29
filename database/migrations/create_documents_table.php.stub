@@ -11,7 +11,7 @@ class CreateDocumentsTable extends Migration
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->morphs('model');
-            $table->unsignedBigInteger('collaborator_id');
+            $table->foreignId('user_id')->constrained();
             $table->boolean('connected');
             $table->datetime('connected_at');
             $table->timestamps();

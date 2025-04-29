@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use ReflectionClass;
 use ReflectionException;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
@@ -18,7 +19,7 @@ use Hocuspocus\Contracts\Collaborative;
 use Hocuspocus\Jobs\Change;
 use Hocuspocus\Jobs\Connect;
 use Hocuspocus\Jobs\Disconnect;
-use Hocuspocus\Models\Collaborator;
+use Illuminate\Support\Facades\DB;
 
 class HocuspocusLaravel
 {
@@ -34,6 +35,7 @@ class HocuspocusLaravel
      */
     public function handleWebhook(Request $request)
     {
+        Log::alert("moze da log");
         if (!$this->verifySignature($request)) {
             throw new BadRequestException('Invalid signature');
         }
@@ -161,13 +163,42 @@ class HocuspocusLaravel
      */
     protected function getUser(array $requestParameters): Authenticatable
     {
-        $token = $requestParameters[config('hocuspocus-laravel.access_token_parameter')] ?? false;
+        // Retrieve CSRF token from request parameters
+        $tokenParam = config('hocuspocus-laravel.access_token_parameter');
+        $token = $requestParameters[$tokenParam] ?? null;
 
-        if (!$token) {
-            throw new AuthenticationException("Access token not set");
+        if (! $token) {
+            throw new AuthenticationException("CSRF token not set");
         }
 
-        return Collaborator::token($token)->model;
+        $userId = null;
+
+        // Stream through sessions to find matching token
+        foreach (DB::table('sessions')->cursor() as $session) {
+            try {
+                $data = unserialize(base64_decode($session->payload));
+            } catch (\Throwable $e) {
+                // Skip invalid or corrupt payloads
+                continue;
+            }
+
+            if (is_array($data) && ($data['_token'] ?? null) === $token) {
+                // Extract the user ID (session key starts with 'login_web_')
+                $userId = collect($data)
+                    ->filter(fn($value, $key) => str_starts_with($key, 'login_web_'))
+                    ->first();
+                break;
+            }
+        }
+
+        if (! $userId) {
+            throw new AuthenticationException("Invalid CSRF token or user not authenticated");
+        }
+
+        // Fetch and return the user model
+        $userModel = config('auth.providers.users.model');
+
+        return $userModel::findOrFail($userId);
     }
 
     /**

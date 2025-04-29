@@ -19,9 +19,9 @@ class Document extends Model
         return $this->morphTo();
     }
 
-    public function collaborator(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Collaborator::class);
+        return $this->belongsTo(config('auth.providers.users.model'));
     }
 
     public function scopeByModel($query, $object)
